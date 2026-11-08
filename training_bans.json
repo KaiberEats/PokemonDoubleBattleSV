@@ -1,0 +1,58 @@
+{
+  "notes": "Conservative training exclusions, not a claim that every entry crashes poke-env. Species bans include all formes. Add normalized Showdown IDs after reviewing error logs.",
+  "species": {
+    "pikachustarter": "Server rejects this Let's Go-only forme in Gen 9",
+    "eeveestarter": "Server rejects this Let's Go-only forme in Gen 9",
+    "floetteeternal": "Server rejects this forme as nonexistent in Gen 9",
+    "zorua": "Illusion changes identity and can duplicate battle information",
+    "zoroark": "Illusion; includes Hisuian formes",
+    "ditto": "Transform/Imposter replaces species and moves",
+    "terapagos": "Automatic forme change and Stellar mechanics",
+    "palafin": "Switch-triggered identity/forme change",
+    "tatsugiri": "Commander changes double-battle slot handling"
+  },
+  "abilities": {
+    "lingeringaroma": "Confirmed poke-env 0.9.0 warning: Unexpected effect LINGERING_AROMA; ability replacement is parsed as UNKNOWN",
+    "illusion": "Identity substitution",
+    "imposter": "Automatic Transform",
+    "commander": "Special occupied-slot handling",
+    "zerotohero": "Automatic forme change",
+    "terashift": "Automatic forme change",
+    "disguise": "Automatic forme change",
+    "iceface": "Automatic forme change",
+    "stancechange": "Automatic forme change",
+    "schooling": "Automatic forme change",
+    "shieldsdown": "Automatic forme change",
+    "zenmode": "Automatic forme change",
+    "powerconstruct": "Automatic forme change",
+    "hungerswitch": "Automatic forme change",
+    "battlebond": "Special event ability/set constraints"
+  },
+  "move_targets": {
+    "randomNormal": "Exclude moves in this target family from generated/fixed sets; locked-turn target mismatches with poke-env 0.9.0"
+  },
+  "moves": {
+    "revivalblessing": "Confirmed revival-target selection is unsupported: reviving=true request returned pass/pass, battle-gen9vgc2024regg-70539 turn 1 (2026-10-03)",
+    "ragingfury": "Confirmed needs-a-target loop in battle-gen9vgc2024regg-66251, turn 3 (2026-09-29)",
+    "outrage": "Confirmed repeated needs-a-target errors during locked turns (2026-09-29, poke-env 0.9.0)",
+    "uproar": "Confirmed repeated needs-a-target errors during locked turns (2026-09-29, poke-env 0.9.0)",
+    "petaldance": "Confirmed repeated needs-a-target errors during locked turns (2026-09-29, poke-env 0.9.0)",
+    "thrash": "Confirmed repeated needs-a-target errors during locked turns (2026-09-29, poke-env 0.9.0)",
+    "transform": "Replaces species and moves",
+    "allyswitch": "Swaps active slot identities",
+    "metronome": "Can invoke banned moves",
+    "assist": "Calls another move",
+    "copycat": "Copies another move",
+    "mimic": "Replaces a move slot",
+    "sketch": "Replaces a move slot",
+    "mirrormove": "Calls another move",
+    "naturepower": "Calls another move",
+    "sleeptalk": "Calls another move",
+    "mefirst": "Copies another move",
+    "instruct": "Repeats another Pokemon's move",
+    "skillswap": "Replaces abilities",
+    "roleplay": "Copies abilities",
+    "entrainment": "Replaces abilities",
+    "doodle": "Copies abilities to both allies"
+  }
+}

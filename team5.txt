@@ -1,0 +1,71 @@
+Porygon2 @ Eviolite
+Ability: Download
+Level: 50
+Tera Type: Ghost
+EVs: 252 HP / 156 Def / 100 SpD
+Sassy Nature
+IVs: 0 Atk / 0 Spe
+- Ice Beam
+- Thunderbolt
+- Recover
+- Trick Room
+
+Ursaluna @ Flame Orb
+Ability: Guts
+Level: 50
+Tera Type: Normal
+EVs: 252 HP / 252 Atk / 4 SpD
+Brave Nature
+IVs: 0 Spe
+- Facade
+- Headlong Rush
+- Ice Punch
+- Protect
+
+Hariyama @ Assault Vest
+Ability: Thick Fat
+Level: 50
+Tera Type: Steel
+EVs: 252 Atk / 128 Def / 128 SpD
+Brave Nature
+IVs: 0 Spe
+- Fake Out
+- Close Combat
+- Knock Off
+- Heavy Slam
+
+Primarina @ Throat Spray
+Ability: Liquid Voice
+Level: 50
+Tera Type: Water
+EVs: 252 HP / 252 SpA / 4 SpD
+Quiet Nature
+IVs: 0 Atk / 0 Spe
+- Hyper Voice
+- Moonblast
+- Energy Ball
+- Protect
+
+Bronzong @ Mental Herb
+Ability: Levitate
+Level: 50
+Tera Type: Water
+EVs: 252 HP / 156 Def / 100 SpD
+Sassy Nature
+IVs: 0 Spe
+- Gyro Ball
+- Body Press
+- Trick Room
+- Helping Hand
+
+Tsareena @ Sitrus Berry
+Ability: Queenly Majesty
+Level: 50
+Tera Type: Fire
+EVs: 252 HP / 252 Atk / 4 SpD
+Brave Nature
+IVs: 0 Spe
+- Power Whip
+- Triple Axel
+- Taunt
+- Protect

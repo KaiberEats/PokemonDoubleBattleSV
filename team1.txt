@@ -1,0 +1,59 @@
+Flutter Mane @ Booster Energy
+Ability: Protosynthesis
+Tera Type: Fairy
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+- Moonblast
+- Shadow Ball
+- Protect
+- Icy Wind
+
+Iron Hands @ Assault Vest
+Ability: Quark Drive
+Tera Type: Grass
+EVs: 252 HP / 76 Atk / 180 SpD
+Adamant Nature
+- Fake Out
+- Drain Punch
+- Wild Charge
+- Volt Switch
+
+Amoonguss @ Sitrus Berry
+Ability: Regenerator
+Tera Type: Water
+EVs: 236 HP / 156 Def / 116 SpD
+Calm Nature
+- Spore
+- Rage Powder
+- Pollen Puff
+- Protect
+
+Arcanine @ Safety Goggles
+Ability: Intimidate
+Tera Type: Grass
+EVs: 252 HP / 76 Def / 180 SpD
+Careful Nature
+- Flare Blitz
+- Snarl
+- Will-O-Wisp
+- Protect
+
+Landorus-Therian @ Choice Scarf
+Ability: Intimidate
+Tera Type: Flying
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Stomping Tantrum
+- Rock Slide
+- U-turn
+- Tera Blast
+
+Chien-Pao @ Focus Sash
+Ability: Sword of Ruin
+Tera Type: Ghost
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Ice Spinner
+- Sucker Punch
+- Sacred Sword
+- Protect

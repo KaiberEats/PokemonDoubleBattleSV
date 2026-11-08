@@ -1,0 +1,65 @@
+Pelipper @ Focus Sash
+Ability: Drizzle
+Level: 50
+Tera Type: Ghost
+EVs: 4 HP / 252 SpA / 252 Spe
+Timid Nature
+- Weather Ball
+- Hurricane
+- Tailwind
+- Protect
+
+Urshifu-Rapid-Strike @ Mystic Water
+Ability: Unseen Fist
+Level: 50
+Tera Type: Water
+EVs: 4 HP / 252 Atk / 252 Spe
+Jolly Nature
+- Surging Strikes
+- Close Combat
+- Aqua Jet
+- Protect
+
+Archaludon @ Assault Vest
+Ability: Stamina
+Level: 50
+Tera Type: Grass
+EVs: 252 HP / 156 SpA / 100 SpD
+Modest Nature
+- Electro Shot
+- Draco Meteor
+- Flash Cannon
+- Body Press
+
+Rillaboom @ Miracle Seed
+Ability: Grassy Surge
+Level: 50
+Tera Type: Fire
+EVs: 252 HP / 196 Atk / 60 Spe
+Adamant Nature
+- Fake Out
+- Grassy Glide
+- Wood Hammer
+- U-turn
+
+Kingambit @ Black Glasses
+Ability: Defiant
+Level: 50
+Tera Type: Dark
+EVs: 252 HP / 252 Atk / 4 SpD
+Adamant Nature
+- Kowtow Cleave
+- Sucker Punch
+- Iron Head
+- Protect
+
+Maushold @ Safety Goggles
+Ability: Friend Guard
+Level: 50
+Tera Type: Ghost
+EVs: 252 HP / 4 SpD / 252 Spe
+Jolly Nature
+- Follow Me
+- Super Fang
+- Helping Hand
+- Protect
