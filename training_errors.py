@@ -120,6 +120,8 @@ class TrainingDiagnosticsMixin:
         self._selected_orders = {}
         self._server_error_state = {}
         self._preview_orders_sent = set()
+        self._action_requests_sent = {}
+        self._parsing_battle_messages = set()
         self._error_handler = None
         super().__init__(*args, **kwargs)
         if error_recorder is not None:
@@ -170,6 +172,9 @@ class TrainingDiagnosticsMixin:
         request = getattr(battle, "last_request", None) or getattr(battle, "_last_request", {}) or {}
         if from_teampreview_request and not request.get("teamPreview"):
             return
+        if (battle.battle_tag in getattr(self, "_parsing_battle_messages", ())
+                and not from_teampreview_request and not maybe_default_order):
+            return
         if request.get("teamPreview"):
             if not hasattr(self, "_preview_orders_sent"):
                 self._preview_orders_sent = set()
@@ -184,11 +189,20 @@ class TrainingDiagnosticsMixin:
             maybe_default_order=maybe_default_order)
 
     async def _parse_messages_and_preview(self, split_messages):
-        result = await super()._handle_battle_message(split_messages)
         tag = split_messages[0][0].lstrip(">")
+        if not hasattr(self, "_parsing_battle_messages"):
+            self._parsing_battle_messages = set()
+        if not hasattr(self, "_action_requests_sent"):
+            self._action_requests_sent = {}
+        self._parsing_battle_messages.add(tag)
+        try:
+            result = await super()._handle_battle_message(split_messages)
+        finally:
+            self._parsing_battle_messages.discard(tag)
         battle = self.battles.get(tag)
         if battle is not None:
             if battle.finished:
+                self._action_requests_sent.pop(tag, None)
                 if hasattr(self, "_preview_orders_sent"):
                     self._preview_orders_sent = {key for key in self._preview_orders_sent if key[0] != tag}
             elif any(len(msg) > 2 and msg[1] == "request" and msg[2]
@@ -196,6 +210,18 @@ class TrainingDiagnosticsMixin:
                 request = getattr(battle, "last_request", None) or getattr(battle, "_last_request", {}) or {}
                 if request.get("teamPreview"):
                     await self._handle_battle_request(battle, from_teampreview_request=True)
+                elif (not request.get("wait")
+                      and ("active" in request or any(request.get("forceSwitch", [])))):
+                    # poke-env 0.9 normally acts on |turn|, not on ordinary
+                    # |request| messages. New servers may deliver them later.
+                    key = request.get("rqid")
+                    if tag not in self._action_requests_sent or self._action_requests_sent[tag] != key:
+                        self._action_requests_sent[tag] = key
+                        try:
+                            await self._handle_battle_request(battle)
+                        except Exception:
+                            self._action_requests_sent.pop(tag, None)
+                            raise
         return result
 
     async def _handle_battle_message(self, split_messages):
