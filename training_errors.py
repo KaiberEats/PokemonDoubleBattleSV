@@ -119,6 +119,7 @@ class TrainingDiagnosticsMixin:
         self._protocol_tail = {}
         self._selected_orders = {}
         self._server_error_state = {}
+        self._preview_orders_sent = set()
         self._error_handler = None
         super().__init__(*args, **kwargs)
         if error_recorder is not None:
@@ -162,9 +163,44 @@ class TrainingDiagnosticsMixin:
             return
         await super()._handle_ots_request(battle_tag)
 
+    async def _handle_battle_request(self, battle, from_teampreview_request=False,
+                                     maybe_default_order=False):
+        # Recent Showdown versions announce preview before sending its request.
+        # poke-env 0.9 sets battle.teampreview only when parsing that request.
+        request = getattr(battle, "last_request", None) or getattr(battle, "_last_request", {}) or {}
+        if from_teampreview_request and not request.get("teamPreview"):
+            return
+        if request.get("teamPreview"):
+            if not hasattr(self, "_preview_orders_sent"):
+                self._preview_orders_sent = set()
+            key = (battle.battle_tag, request.get("rqid"))
+            if key in self._preview_orders_sent:
+                return
+            await self.ps_client.send_message(self.teampreview(battle), battle.battle_tag)
+            self._preview_orders_sent.add(key)
+            return
+        return await super()._handle_battle_request(
+            battle, from_teampreview_request=from_teampreview_request,
+            maybe_default_order=maybe_default_order)
+
+    async def _parse_messages_and_preview(self, split_messages):
+        result = await super()._handle_battle_message(split_messages)
+        tag = split_messages[0][0].lstrip(">")
+        battle = self.battles.get(tag)
+        if battle is not None:
+            if battle.finished:
+                if hasattr(self, "_preview_orders_sent"):
+                    self._preview_orders_sent = {key for key in self._preview_orders_sent if key[0] != tag}
+            elif any(len(msg) > 2 and msg[1] == "request" and msg[2]
+                     for msg in split_messages[1:]):
+                request = getattr(battle, "last_request", None) or getattr(battle, "_last_request", {}) or {}
+                if request.get("teamPreview"):
+                    await self._handle_battle_request(battle, from_teampreview_request=True)
+        return result
+
     async def _handle_battle_message(self, split_messages):
         if self.error_recorder is None:
-            return await super()._handle_battle_message(split_messages)
+            return await self._parse_messages_and_preview(split_messages)
         if self.training_error.is_set():
             return  # Stop feeding queued errors into poke-env's retry loop.
         tag = split_messages[0][0].lstrip(">")
@@ -206,7 +242,7 @@ class TrainingDiagnosticsMixin:
                     self.training_error.set()
                     return
         try:
-            return await super()._handle_battle_message(split_messages)
+            return await self._parse_messages_and_preview(split_messages)
         except Exception as exc:
             self.record_training_error(self.battles.get(tag), "battle_message_exception", exc)
             self.training_error.set()
