@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from itertools import permutations
 from config import OBS_DIM, LEGACY_OBS_DIM, SPECIES_OBS_DIM, MOVE_HISTORY_OBS_DIM, SPECIES_FEATURE_DIM, ACTION_DIM, PPOConfig
+from config import PRE_RICH_OBS_DIM, OWN_SET_OFFSET, SET_DIM
 
 
 class SelectionPolicy(nn.Module):
@@ -12,6 +13,7 @@ class SelectionPolicy(nn.Module):
     def __init__(self, hidden_dim):
         super().__init__()
         self.encoder = nn.Sequential(nn.Linear(SPECIES_FEATURE_DIM, hidden_dim), nn.Tanh())
+        self.set_encoder = nn.Linear(SET_DIM, hidden_dim, bias=False)
         self.policy = nn.Sequential(nn.Linear(6 * hidden_dim, hidden_dim), nn.Tanh(), nn.Linear(hidden_dim, 1))
         self.value = nn.Sequential(nn.Linear(2 * hidden_dim, hidden_dim), nn.Tanh(), nn.Linear(hidden_dim, 1))
         self.register_buffer("orders", torch.tensor(list(permutations(range(6), 4))), persistent=False)
@@ -19,6 +21,8 @@ class SelectionPolicy(nn.Module):
     def forward(self, x):
         species = x[:, LEGACY_OBS_DIM + 1:SPECIES_OBS_DIM].reshape(-1, 12, SPECIES_FEATURE_DIM)
         encoded = self.encoder(species)
+        own_sets = x[:, OWN_SET_OFFSET:OWN_SET_OFFSET + 6 * SET_DIM].reshape(-1, 6, SET_DIM)
+        encoded = torch.cat((encoded[:, :6] + torch.tanh(self.set_encoder(own_sets)), encoded[:, 6:]), dim=1)
         present = species[:, :, :1]
         own, opponent = encoded[:, :6], encoded[:, 6:]
         own_pool = (own * present[:, :6]).sum(1) / present[:, :6].sum(1).clamp_min(1)
@@ -193,7 +197,7 @@ class PPOAgent:
         state = torch.load(path, map_location=self.device)
         weight = state["body.0.weight"]
         expected = self.net.body[0].weight
-        if weight.shape[0] == expected.shape[0] and weight.shape[1] in (LEGACY_OBS_DIM, SPECIES_OBS_DIM, MOVE_HISTORY_OBS_DIM):
+        if weight.shape[0] == expected.shape[0] and weight.shape[1] in (LEGACY_OBS_DIM, SPECIES_OBS_DIM, MOVE_HISTORY_OBS_DIM, PRE_RICH_OBS_DIM):
             expanded = torch.zeros_like(expected)
             expanded[:, :weight.shape[1]] = weight
             state["body.0.weight"] = expanded
@@ -203,5 +207,8 @@ class PPOAgent:
             state.update({key: value for key, value in self.net.state_dict().items()
                           if key.startswith("selection.")})
             print("Loaded old model: species-based selection policy initialized; selection retraining required.")
+        if "selection.set_encoder.weight" not in state:
+            state["selection.set_encoder.weight"] = torch.zeros_like(self.net.selection.set_encoder.weight)
+            print("Loaded earlier selection model: own-set inputs initialized with zero weights; further training required.")
         self.net.load_state_dict(state)
         self.net.eval()

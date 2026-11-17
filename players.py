@@ -2,6 +2,7 @@ from poke_env import Player
 from poke_env.data import to_id_str
 from collections import Counter
 from switch_history import SwitchHistory
+from rich_observation import BattleFlow
 from state_encoder import embed_battle
 from action_mapper import (
     action_to_order,
@@ -27,6 +28,7 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
         self._selection_decisions = {}
         self._move_histories = {}
         self._switch_histories = {}
+        self._battle_flows = {}
 
     async def _handle_battle_message(self, split_messages):
         tag = split_messages[0][0].lstrip(">")
@@ -34,6 +36,9 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
         if not hasattr(self, "_switch_histories"):
             self._switch_histories = {}
         self._switch_histories.setdefault(tag, SwitchHistory()).record(split_messages[1:])
+        if not hasattr(self, "_battle_flows"):
+            self._battle_flows = {}
+        self._battle_flows.setdefault(tag, BattleFlow()).record(split_messages[1:])
         # Record server move events, not selected orders or unrevealed move sets.
         for msg in split_messages[1:]:
             if len(msg) > 3 and msg[1] == "move" and msg[2][:2] in ("p1", "p2"):
@@ -45,6 +50,7 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
             if battle is not None and battle.finished:
                 self._move_histories.pop(tag, None)
                 self._switch_histories.pop(tag, None)
+                self._battle_flows.pop(tag, None)
 
     def teampreview(self, battle):
         obs = self._observation(battle)
@@ -92,7 +98,8 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
     def _observation(self, battle):
         tag = battle.battle_tag
         return embed_battle(battle, getattr(self, "_move_histories", {}).get(tag),
-                            getattr(self, "_switch_histories", {}).get(tag))
+                            getattr(self, "_switch_histories", {}).get(tag),
+                            getattr(self, "_battle_flows", {}).get(tag))
 
     def finalize_battle(self, battle):
         """

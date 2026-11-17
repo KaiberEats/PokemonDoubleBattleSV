@@ -24,6 +24,7 @@ class PPOConfig:
     max_damage_battles: int = 1000
     self_play_battles: int = 100
     update_every_episodes: int = 10
+    parallel_battles: int = 5
     gamma: float = 0.99
     lam: float = 0.95
     clip_eps: float = 0.2
@@ -53,4 +54,7 @@ MOVE_HISTORY_OBS_DIM = SPECIES_OBS_DIM + MOVE_HISTORY_DIM
 # and the outgoing/incoming species features.
 SWITCH_SLOT_DIM = 6 + 2 * SPECIES_FEATURE_DIM
 SWITCH_HISTORY_DIM = 4 * SWITCH_SLOT_DIM
-OBS_DIM = MOVE_HISTORY_OBS_DIM + SWITCH_HISTORY_DIM
+PRE_RICH_OBS_DIM = MOVE_HISTORY_OBS_DIM + SWITCH_HISTORY_DIM
+from rich_observation import RICH_DIM, SET_DIM, HISTORY_DIM, TIMER_DIM, DYNAMIC_MOVE_DIM
+OWN_SET_OFFSET = PRE_RICH_OBS_DIM + HISTORY_DIM + TIMER_DIM + 8 * DYNAMIC_MOVE_DIM
+OBS_DIM = PRE_RICH_OBS_DIM + RICH_DIM

@@ -7,7 +7,7 @@ import torch
 
 from switch_history import SwitchHistory
 from state_encoder import switch_history_features, species_features, embed_battle
-from config import SWITCH_SLOT_DIM, MOVE_HISTORY_OBS_DIM, PPOConfig, OBS_DIM
+from config import SWITCH_SLOT_DIM, MOVE_HISTORY_OBS_DIM, PPOConfig, OBS_DIM, PRE_RICH_OBS_DIM
 from ppo import PPOAgent
 
 
@@ -59,4 +59,4 @@ class SwitchHistoryTests(unittest.TestCase):
         h.record([['', 'switch', 'p1a: X', 'Torkoal, L50']])
         obs = embed_battle(NS(player_role='p1', turn=1), switch_history=h)
         self.assertEqual(len(obs), OBS_DIM)
-        np.testing.assert_array_equal(obs[MOVE_HISTORY_OBS_DIM:], switch_history_features(NS(player_role='p1', turn=1), h))
+        np.testing.assert_array_equal(obs[MOVE_HISTORY_OBS_DIM:PRE_RICH_OBS_DIM], switch_history_features(NS(player_role='p1', turn=1), h))

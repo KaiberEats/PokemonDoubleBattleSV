@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from config import (OBS_DIM, LEGACY_OBS_DIM, SPECIES_FEATURE_DIM,
                     HISTORY_MOVE_IDS, MOVE_HISTORY_DIM, SWITCH_SLOT_DIM, SWITCH_HISTORY_DIM)
 from poke_env.data import GenData, to_id_str
+from rich_observation import rich_features
 
 STATUS_LIST = ["brn", "frz", "par", "psn", "slp", "tox", "fnt", None]
 
@@ -262,7 +263,7 @@ def switch_history_features(battle, history=None):
     return result
 
 
-def embed_battle(battle, move_history=None, switch_history=None) -> np.ndarray:
+def embed_battle(battle, move_history=None, switch_history=None, flow=None) -> np.ndarray:
     """
     PPOに入れる固定長ベクトル。
     記憶したい情報：
@@ -305,4 +306,5 @@ def embed_battle(battle, move_history=None, switch_history=None) -> np.ndarray:
 
     return np.concatenate([vec, selection_features(battle),
                            move_history_features(battle, move_history),
-                           switch_history_features(battle, switch_history)]).astype(np.float32)
+                           switch_history_features(battle, switch_history),
+                           rich_features(battle, flow)]).astype(np.float32)

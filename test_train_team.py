@@ -2,16 +2,16 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
-from train_team import train_stage, train_random_teams
+from train_team import train_stage, train_random_teams, BATTLES_PER_OPPONENT
 
 
 class TeamTrainingTests(unittest.IsolatedAsyncioTestCase):
-    async def test_schedule_has_300_battles_in_requested_opponent_order(self):
+    async def test_schedule_has_configured_battles_in_requested_opponent_order(self):
         teams = {f"team{i}": f"fixed{i}" for i in range(1, 6)}
         with patch("train_team.train_stage", new_callable=AsyncMock) as run:
             await train_random_teams(Mock(), SimpleNamespace(seed=42), teams)
         self.assertEqual(run.await_count, 3)
-        self.assertEqual(sum(c.args[5] for c in run.await_args_list), 300)
+        self.assertEqual(sum(c.args[5] for c in run.await_args_list), 3 * BATTLES_PER_OPPONENT)
         self.assertEqual([c.args[3] for c in run.await_args_list],
                          ["random", "maxdamage", "selfplay"])
         for call in run.await_args_list:
@@ -22,7 +22,7 @@ class TeamTrainingTests(unittest.IsolatedAsyncioTestCase):
         for kind in ("random", "maxdamage", "selfplay"):
             with self.subTest(kind=kind):
                 players = [Mock(buffer=[]), Mock(buffer=[])]
-                cfg = SimpleNamespace(error_log_path="unused", update_every_episodes=2)
+                cfg = SimpleNamespace(error_log_path="unused", update_every_episodes=2, parallel_battles=1)
                 teams = {f"team{i}": f"fixed{i}" for i in range(1, 6)}
                 rng = Mock()
                 rng.choice.side_effect = ["team5", "team5", "team1", "team3"]
