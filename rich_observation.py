@@ -11,6 +11,7 @@ from functools import lru_cache
 
 import numpy as np
 from poke_env.data import GenData, to_id_str
+from performance_timing import TIMINGS
 
 HISTORY_DIM = 256
 STATIC_MOVE_DIM = 128
@@ -91,6 +92,7 @@ class BattleFlow:
         self.memory = {role: np.zeros(HISTORY_DIM, dtype=np.float64) for role in ("p1", "p2")}
         self.between_turns = True
 
+    @TIMINGS.timed("history_record")
     def record(self, messages):
         for message in messages:
             if len(message) < 2 or message[1] in ("request", "uhtml", "uhtmlchange", "j", "l", "t:"):

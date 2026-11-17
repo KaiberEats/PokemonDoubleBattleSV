@@ -10,6 +10,7 @@ from players import FixedTeamRandomDoublesPlayer, PPODoublesPlayer
 from ppo import PPOAgent, RolloutBuffer
 from random_team import SafeRandomTeamBuilder, TrainingBans, validated_random_team
 from training_errors import TrainingErrorRecorder
+from performance_timing import TIMINGS, synchronize_agent
 
 
 def training_account(prefix):
@@ -110,9 +111,17 @@ def drain_buffers(players):
 
 
 def update_and_save(agent, cfg, players):
-    update_buffer = drain_buffers(players)
-    agent.update(update_buffer)
-    agent.save(cfg.model_path)
+    with TIMINGS.measure("buffer_merge"):
+        update_buffer = drain_buffers(players)
+    if TIMINGS.enabled:
+        synchronize_agent(agent)
+    with TIMINGS.measure("ppo_update"):
+        agent.update(update_buffer)
+        if TIMINGS.enabled:
+            synchronize_agent(agent)
+    with TIMINGS.measure("model_save"):
+        agent.save(cfg.model_path)
+    TIMINGS.report()
     return len(update_buffer)
 
 

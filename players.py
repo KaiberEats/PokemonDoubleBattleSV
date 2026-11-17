@@ -13,6 +13,7 @@ from action_mapper import (
 )
 from ppo import RolloutBuffer
 from training_errors import TrainingDiagnosticsMixin
+from performance_timing import TIMINGS
 
 class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
     def __init__(self, ppo_agent, training=True, *args, **kwargs):
@@ -54,8 +55,10 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
 
     def teampreview(self, battle):
         obs = self._observation(battle)
-        action_mask = team_preview_action_mask(battle)
-        action, logprob, value = self.ppo_agent.act(obs, action_mask)
+        with TIMINGS.measure("preview_mask"):
+            action_mask = team_preview_action_mask(battle)
+        with TIMINGS.measure("preview_inference"):
+            action, logprob, value = self.ppo_agent.act(obs, action_mask)
 
         if self.training:
             self._selection_decisions[battle.battle_tag] = (obs, action, logprob, value, action_mask)
@@ -66,10 +69,12 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
         #print("choose_move start", flush=True)
 
         obs = self._observation(battle)
-        action_mask = legal_action_mask(battle)
+        with TIMINGS.measure("action_mask"):
+            action_mask = legal_action_mask(battle)
         #print("after embed_battle", flush=True)
 
-        action, logprob, value = self.ppo_agent.act(obs, action_mask)
+        with TIMINGS.measure("inference"):
+            action, logprob, value = self.ppo_agent.act(obs, action_mask)
         #print("after ppo act", flush=True)
 
         if self.training and battle.battle_tag in self._last_obs:
@@ -90,11 +95,13 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
         self._last_action_mask[battle.battle_tag] = action_mask
 
         #print("before action_to_order", flush=)
-        order = action_to_order(self, battle, action)
+        with TIMINGS.measure("action_to_order"):
+            order = action_to_order(self, battle, action)
         #print("after action_to_order", flush=True)
 
         return order
 
+    @TIMINGS.timed("observation")
     def _observation(self, battle):
         tag = battle.battle_tag
         return embed_battle(battle, getattr(self, "_move_histories", {}).get(tag),

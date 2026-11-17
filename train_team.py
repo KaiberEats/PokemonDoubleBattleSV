@@ -15,6 +15,7 @@ from train import (finalize_finished_battles, load_existing_model,
                    run_training_battle, stop_players, training_account,
                    update_and_save)
 from training_errors import TrainingErrorRecorder
+from performance_timing import TIMINGS
 
 
 BATTLES_PER_OPPONENT = 100
@@ -99,7 +100,8 @@ async def train_stage(agent, cfg, teams, opponent_type, rng,
             tasks = [asyncio.create_task(collect(i, worker, jobs))
                      for i, worker in enumerate(workers)]
             try:
-                await asyncio.gather(*tasks)
+                with TIMINGS.measure("collection_wall"):
+                    await asyncio.gather(*tasks)
             finally:
                 # gather does not cancel siblings when one battle fails.
                 # Await cancellation before closing clients or touching weights.
