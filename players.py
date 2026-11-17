@@ -96,7 +96,7 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
 
         #print("before action_to_order", flush=)
         with TIMINGS.measure("action_to_order"):
-            order = action_to_order(self, battle, action)
+            order = action_to_order(self, battle, action, action_mask=action_mask)
         #print("after action_to_order", flush=True)
 
         return order

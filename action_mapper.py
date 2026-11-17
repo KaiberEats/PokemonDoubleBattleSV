@@ -87,19 +87,35 @@ def legal_action_mask(battle) -> np.ndarray:
     mask = np.zeros(ACTION_DIM, dtype=np.bool_)
     force_switch = list(getattr(battle, "force_switch", [False, False]))
     replacement_turn = any(force_switch)
+    # A slot has only 27 choices. Build each once rather than reconstructing
+    # the same order and querying poke-env's properties for every joint action.
+    unavailable = object()
+    slot_orders = []
+    for slot in range(2):
+        orders = []
+        for slot_action in range(SLOT_ACTION_DIM):
+            try:
+                orders.append(_slot_order(battle, slot, slot_action))
+            except Exception:
+                orders.append(unavailable)
+        slot_orders.append(orders)
+    available_switches = battle.available_switches
+    active_pokemon = battle.active_pokemon
 
     for action_id in range(ACTION_DIM):
         left_action, right_action = decode_action(action_id)
         try:
-            left_order = _slot_order(battle, 0, left_action)
-            right_order = _slot_order(battle, 1, right_action)
+            left_order = slot_orders[0][left_action]
+            right_order = slot_orders[1][right_action]
+            if left_order is unavailable or right_order is unavailable:
+                continue
             orders = (left_order, right_order)
             valid = True
 
             for slot, order in enumerate(orders):
                 must_switch = slot < len(force_switch) and force_switch[slot]
                 if must_switch:
-                    switches = battle.available_switches[slot]
+                    switches = available_switches[slot]
                     if order is None:
                         # Both slots may request replacement with only one bench
                         # Pokemon left. Pass only when the other slot uses the
@@ -116,13 +132,13 @@ def legal_action_mask(battle) -> np.ndarray:
                         valid = (
                             valid
                             and (left_action, right_action)[slot] >= SWITCH_ACTION_START
-                            and order.order in battle.available_switches[slot]
+                            and order.order in available_switches[slot]
                         )
                     else:
                         valid = False
                 elif replacement_turn:
                     valid = valid and order is None
-                elif battle.active_pokemon[slot] is None:
+                elif active_pokemon[slot] is None:
                     valid = valid and order is None
                 else:
                     valid = valid and order is not None
@@ -144,13 +160,16 @@ def legal_action_mask(battle) -> np.ndarray:
     return mask
 
 
-def action_to_order(player, battle, action_id: int):
+def action_to_order(player, battle, action_id: int, *, action_mask=None):
     if getattr(battle, "teampreview", False):
         return team_preview_order_from_action(battle, action_id)
 
     try:
         action_id = int(action_id) % ACTION_DIM
-        if not legal_action_mask(battle)[action_id]:
+        # The supplied mask belongs to this immediate decision, never a later
+        # request. Other callers retain the checked, standalone conversion API.
+        mask = legal_action_mask(battle) if action_mask is None else np.asarray(action_mask)
+        if mask.shape != (ACTION_DIM,) or not mask[action_id]:
             raise ValueError("Illegal joint action")
         left_action, right_action = decode_action(action_id)
         return DoubleBattleOrder(

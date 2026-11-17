@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -58,6 +59,28 @@ def move_action(move_index, target):
 
 
 class ActionMapperTests(unittest.TestCase):
+    def test_supplied_mask_avoids_second_full_validation(self):
+        battle = FakeBattle()
+        mask = legal_action_mask(battle)
+        action = int(np.flatnonzero(mask)[0])
+        with patch('action_mapper.legal_action_mask', side_effect=AssertionError('mask recomputed')):
+            order = action_to_order(FakePlayer(), battle, action, action_mask=mask)
+        self.assertIsNotNone(order)
+
+    def test_slot_orders_are_built_only_once_per_choice(self):
+        from action_mapper import _slot_order
+        with patch('action_mapper._slot_order', wraps=_slot_order) as build:
+            legal_action_mask(FakeBattle())
+        self.assertEqual(build.call_count, 2 * SLOT_ACTION_DIM)
+
+    def test_illegal_or_malformed_supplied_mask_still_falls_back(self):
+        from unittest.mock import Mock
+        for mask in (np.zeros(ACTION_DIM, dtype=bool), np.ones(1, dtype=bool)):
+            player = Mock()
+            player.choose_random_doubles_move.return_value = 'fallback'
+            self.assertEqual(action_to_order(player, FakeBattle(), 0, action_mask=mask), 'fallback')
+            player.choose_random_doubles_move.assert_called_once()
+
     def test_mask_contains_only_available_targets(self):
         battle = FakeBattle()
         mask = legal_action_mask(battle)
