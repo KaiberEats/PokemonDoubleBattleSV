@@ -18,7 +18,7 @@ from training_errors import TrainingErrorRecorder
 from performance_timing import TIMINGS
 
 
-BATTLES_PER_OPPONENT = 100
+BATTLES_PER_OPPONENT = 3000
 OPPONENT_TYPES = ("random", "maxdamage", "selfplay")
 TEAM_DIRECTORY = Path(__file__).resolve().parent
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     parser.add_argument("--parallel-battles", type=int, default=5,
                         help="Maximum simultaneous battles (default: 5)")
     parser.add_argument("--battles-per-opponent", type=int, default=BATTLES_PER_OPPONENT,
-                        help="Total battles for each opponent type (default: 3000)")
+                        help=f"Total battles for each opponent type (default: {BATTLES_PER_OPPONENT})")
     args = parser.parse_args()
     if args.parallel_battles < 1 or args.battles_per_opponent < 1:
         parser.error("parallel-battles and battles-per-opponent must be positive")
