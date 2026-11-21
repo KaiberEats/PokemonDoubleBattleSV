@@ -25,6 +25,8 @@ class PPOConfig:
     self_play_battles: int = 100
     update_every_episodes: int = 10
     parallel_battles: int = 5
+    block_fake_out: bool = False
+    checkpoint_every: int = 0
     gamma: float = 0.99
     lam: float = 0.95
     clip_eps: float = 0.2

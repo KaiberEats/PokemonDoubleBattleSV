@@ -4,6 +4,10 @@ from functools import partial
 from itertools import combinations
 from pathlib import Path
 import re
+import random
+import hashlib
+import json
+import numpy as np
 import torch
 
 from config import LOCAL_SERVER, TEAM_PATH, EVAL_FORMAT, PPOConfig, new_error_log_path
@@ -111,6 +115,7 @@ async def evaluate_against(agent, opponent_type, opponent_name, n_eval, teams, c
         error_recorder=recorder,
         ppo_agent=agent,
         training=False,
+        block_fake_out=getattr(cfg, "block_fake_out", False),
         battle_format=EVAL_FORMAT,
         server_configuration=LOCAL_SERVER,
         max_concurrent_battles=1,
@@ -162,10 +167,13 @@ async def evaluate_against(agent, opponent_type, opponent_name, n_eval, teams, c
     return results
 
 
-async def main(n_eval=10):
+async def main(n_eval=100, *, model=None, block_fake_out=False, seed=42):
     if n_eval < 1:
         raise ValueError("n_eval must be positive")
-    cfg = PPOConfig(model_path=str(TEAM_PATH.with_name("ppo_doubles_full_actions.pt")),
+    random.seed(seed)
+    np.random.seed(seed)
+    cfg = PPOConfig(model_path=str(model or TEAM_PATH.with_name("ppo_doubles_full_actions.pt")),
+                    seed=seed, block_fake_out=block_fake_out,
                     error_log_path=new_error_log_path().replace("training_errors_", "evaluation_errors_"))
     agent = DeterministicPPOAgent(cfg)
     agent.load(cfg.model_path)
@@ -177,6 +185,7 @@ async def main(n_eval=10):
         bans.validate_team(team)
 
     print(f"evaluation error log: {cfg.error_log_path}")
+    print(f"evaluation model: {cfg.model_path}; learner block_fake_out={block_fake_out}; seed={seed}", flush=True)
     opponents = [(FixedTeamRandomDoublesPlayer, "random"),
                  (MaxDamageDoublesPlayer, "maxdamage"),
                  (partial(PPODoublesPlayer, ppo_agent=agent, training=False), "selfplay")]
@@ -190,11 +199,21 @@ async def main(n_eval=10):
             results.extend(await evaluate_against(agent, opponent_type, opponent_name, n_eval, pair, cfg))
     print(format_summary(results, [name for name, _ in teams],
                          [name for _, name in opponents]), flush=True)
+    report = Path(cfg.error_log_path).with_suffix("") / "results.json"
+    report.parent.mkdir(parents=True, exist_ok=True)
+    report.write_text(json.dumps(dict(model=str(Path(cfg.model_path).resolve()),
+                      model_sha256=hashlib.sha256(Path(cfg.model_path).read_bytes()).hexdigest(),
+                      seed=seed, block_fake_out=block_fake_out,
+                      opponent_block_fake_out=False, results=results), indent=2), encoding="utf-8")
+    print(f"evaluation results: {report}", flush=True)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Round robin of team1-team5: PPO vs random, maxdamage, and PPO")
-    parser.add_argument("--battles", type=int, default=10, help="Battles per team pair and player2 agent; teams alternate (default: 10)")
+    parser.add_argument("--battles", type=int, default=100, help="Battles per team pair and player2 agent; teams alternate (default: 100)")
+    parser.add_argument("--model", help="Model to evaluate")
+    parser.add_argument("--block-fake-out", action="store_true", help="Restrict the evaluated PPO only; opponents remain unrestricted")
+    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     if args.battles < 1:
         parser.error("--battles must be positive")
-    asyncio.run(main(args.battles))
+    asyncio.run(main(args.battles, model=args.model, block_fake_out=args.block_fake_out, seed=args.seed))

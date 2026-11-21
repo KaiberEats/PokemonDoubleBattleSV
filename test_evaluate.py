@@ -13,10 +13,18 @@ from team_loader import load_team
 
 
 class EvaluationTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        log = str(Path(directory.name) / 'training_errors.jsonl')
+        replacement = patch('evaluate.new_error_log_path', return_value=log)
+        replacement.start()
+        self.addCleanup(replacement.stop)
+
     def pair(self):
         return tuple((f'team{i}', load_team(TEAM_PATH.with_name(f'team{i}.txt'))) for i in (1, 2))
 
-    async def test_default_schedule_has_300_battles_and_three_modes(self):
+    async def test_default_schedule_has_3000_battles_and_three_modes(self):
         with patch('evaluate.DeterministicPPOAgent') as agent, patch('evaluate.evaluate_against', new_callable=AsyncMock, return_value=[]) as play:
             await main()
         calls = play.await_args_list
@@ -27,7 +35,7 @@ class EvaluationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual([c.args[2] for c in group], [mode]*10)
             self.assertEqual([tuple(name for name, team in c.args[4]) for c in group], expected)
             for call in group:
-                self.assertEqual(call.args[3], 10)
+                self.assertEqual(call.args[3], 100)
                 self.assertIs(call.args[0], agent.return_value)
                 for name, team in call.args[4]:
                     self.assertEqual(team, load_team(TEAM_PATH.with_name(f'{name}.txt')))
@@ -95,7 +103,7 @@ class EvaluationTests(unittest.IsolatedAsyncioTestCase):
         stop.assert_awaited_once_with(ppo, opponent)
 
     async def test_battle_count_override_and_validation(self):
-        with patch('evaluate.DeterministicPPOAgent'), patch('evaluate.evaluate_against', new_callable=AsyncMock, return_value=[]) as play:
+        with patch('evaluate.DeterministicPPOAgent'), patch('evaluate.Path.write_text'), patch('evaluate.evaluate_against', new_callable=AsyncMock, return_value=[]) as play:
             await main(n_eval=2)
         self.assertTrue(all(c.args[3] == 2 for c in play.await_args_list))
         with self.assertRaises(ValueError):

@@ -80,7 +80,7 @@ def _slot_order(battle, slot: int, slot_action: int):
     return BattleOrder(switches[index])
 
 
-def legal_action_mask(battle) -> np.ndarray:
+def legal_action_mask(battle, *, fake_out_allowed=None) -> np.ndarray:
     if getattr(battle, "teampreview", False):
         return team_preview_action_mask(battle)
 
@@ -95,7 +95,13 @@ def legal_action_mask(battle) -> np.ndarray:
         orders = []
         for slot_action in range(SLOT_ACTION_DIM):
             try:
-                orders.append(_slot_order(battle, slot, slot_action))
+                order = _slot_order(battle, slot, slot_action)
+                if (fake_out_allowed is not None and not fake_out_allowed[slot]
+                        and slot_action < SWITCH_ACTION_START and order is not None
+                        and getattr(order.order, "id", None) == "fakeout"):
+                    orders.append(unavailable)
+                else:
+                    orders.append(order)
             except Exception:
                 orders.append(unavailable)
         slot_orders.append(orders)

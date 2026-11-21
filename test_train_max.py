@@ -10,6 +10,7 @@ class MaxTrainingTests(unittest.IsolatedAsyncioTestCase):
         with patch('train_max.PPOAgent', return_value=agent), \
              patch('train_max.load_teams', return_value=teams), \
              patch('train_max.load_existing_model') as load, \
+             patch('train_max.Path.write_text'), \
              patch('train_max.train_stage', new_callable=AsyncMock) as stage:
             await train_max.main()
         load.assert_called_once()

@@ -60,7 +60,8 @@ async def train_stage(agent, cfg, teams, opponent_type, rng,
         for worker_id in range(min(parallel, battles, cfg.update_every_episodes)):
             learner = PPODoublesPlayer(
                 account_configuration=training_account(f"ppo{worker_id}"),
-                ppo_agent=agent, training=True, team=teams[names[0]], **common)
+                ppo_agent=agent, training=True, team=teams[names[0]],
+                block_fake_out=getattr(cfg, "block_fake_out", False), **common)
             players.append(learner)
             opponent = opponent_class(
                 account_configuration=training_account(f"opp{worker_id}"),
@@ -95,6 +96,9 @@ async def train_stage(agent, cfg, teams, opponent_type, rng,
 
         while finished < battles:
             count = min(cfg.update_every_episodes, battles - finished)
+            checkpoint_every = getattr(cfg, "checkpoint_every", 0)
+            if checkpoint_every > 0:
+                count = min(count, checkpoint_every - finished % checkpoint_every)
             jobs = deque((number, rng.choice(names), rng.choice(names))
                          for number in range(finished + 1, finished + count + 1))
             tasks = [asyncio.create_task(collect(i, worker, jobs))
@@ -111,6 +115,11 @@ async def train_stage(agent, cfg, teams, opponent_type, rng,
                 await asyncio.gather(*tasks, return_exceptions=True)
                 tasks = []
             size = update_and_save(agent, cfg, learners)
+            if checkpoint_every > 0 and finished % checkpoint_every == 0:
+                checkpoint = Path(cfg.model_path)
+                checkpoint = checkpoint.with_name(f"{checkpoint.stem}_{finished:05d}{checkpoint.suffix}")
+                agent.save(str(checkpoint))
+                print(f"checkpoint: {checkpoint}", flush=True)
             print(f"[{label}] battles={finished}/{battles} | buffer={size}", flush=True)
         print(f"[{label}] completed {battles} battles")
     finally:

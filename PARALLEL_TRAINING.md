@@ -40,5 +40,51 @@ SSH先への反映はコードをcommit/pushした後、SSH先で `git pull --ff
 観測拡張も未反映であれば、その関連ファイルも一緒に反映してください。
 モデルと学習ログは本変更の検証では上書きしません。
 
+## 同じモデルからのA/B実験
+
+以下はリポジトリ直下で、Showdownが起動している状態で実行します。
+`base_50000.pt` は実験の初回だけ作成し、以後は上書きしないでください。
+
+```bash
+mkdir -p models
+cp -n ppo_doubles_full_actions.pt models/base_50000.pt
+python train_max.py --load-model models/base_50000.pt --save-model models/a.pt --battles 10000 --parallel-battles 5 --checkpoint-every 5000 --seed 42
+python train_max.py --load-model models/base_50000.pt --save-model models/b.pt --battles 10000 --parallel-battles 5 --checkpoint-every 5000 --seed 42 --block-fake-out
+```
+
+AとBはどちらも同じベース重みから始めます。入力に存在しないモデルを指定すると停止します。
+入力と同じ保存先を明示すると、出発点保護のため停止します。
+Aは従来どおり、Bは学習者だけにねこだまし制限を適用します。相手の方策は変更しません。
+初手・交代・強制交代後の最初の行動ターンには使用でき、再登場すると条件がリセットされます。
+それ以降のターンでは、ねこだましを含む同時行動を候補から除きます。
+技の対象が無効かどうかや、ひるみが通るかどうかまでは制限しません。
+
+出力は `a.pt` と `b.pt`、途中モデルは `a_05000.pt` / `a_10000.pt` 等です。
+50戦ごとの通常保存先もA/Bそれぞれのファイルになるのでベースを上書きしません。
+`.run.json` に出発点のSHA256、設定、完了フラグ、完了戦数を記録します。
+チェックポイント間隔が更新間隔と割り切れない場合は、チェックポイント境界で更新を区切ります。
+このため比較する実験では更新間隔とチェックポイント間隔も同じにしてください。
+モデル保存形式は従来どおり重みのみです。Adamの状態は新しい学習の開始時に初期化します。
+
+```bash
+python evaluate.py --model models/base_50000.pt --battles 100 --seed 42
+python evaluate.py --model models/base_50000.pt --battles 100 --seed 42 --block-fake-out
+python evaluate.py --model models/a.pt --battles 100 --seed 42
+python evaluate.py --model models/b.pt --battles 100 --seed 42 --block-fake-out
+```
+
+1コマンドにつき通常の3,000戦です。1行目と2行目の差は制限のみの効果、
+1行目と3行目の差は従来方式の追加学習、2行目と4行目の差は制限下での追加学習の効果です。
+制限を学習した成果自体を分けて見るには、Bも制限なしで評価してください。
+
+```bash
+python evaluate.py --model models/b.pt --battles 100 --seed 42
+```
+
+評価の制限はplayer1のPPOにだけ適用し、相手側は自己対戦を含め従来設定のままです。
+モデルパス・SHA256・seed・制限設定・各対戦結果を、評価ログフォルダの `results.json` に保存します。
+厳密な再現性には限界があります。seedはPython/NumPy/PyTorch側を設定しますが、
+Showdownの乱数や非同期処理の順序は固定していません。複数seedで繰り返して比較してください。
+
 `test_parallel_training.py` は5対戦の同時進行、更新バリア、端数処理、自己対戦の両者集約、
 異常終了時のキャンセルと接続終了、GAEのエピソード分離を検証します。

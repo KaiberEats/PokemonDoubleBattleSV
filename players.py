@@ -14,9 +14,10 @@ from action_mapper import (
 from ppo import RolloutBuffer
 from training_errors import TrainingDiagnosticsMixin
 from performance_timing import TIMINGS
+from action_rules import FakeOutTracker
 
 class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
-    def __init__(self, ppo_agent, training=True, *args, **kwargs):
+    def __init__(self, ppo_agent, training=True, *args, block_fake_out=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.ppo_agent = ppo_agent
         self.training = training
@@ -30,9 +31,14 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
         self._move_histories = {}
         self._switch_histories = {}
         self._battle_flows = {}
+        self.block_fake_out = block_fake_out
+        self._fake_out_trackers = {}
 
     async def _handle_battle_message(self, split_messages):
         tag = split_messages[0][0].lstrip(">")
+        if not hasattr(self, "_fake_out_trackers"):
+            self._fake_out_trackers = {}
+        self._fake_out_trackers.setdefault(tag, FakeOutTracker()).record(split_messages[1:])
         history = self._move_histories.setdefault(tag, Counter())
         if not hasattr(self, "_switch_histories"):
             self._switch_histories = {}
@@ -52,6 +58,7 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
                 self._move_histories.pop(tag, None)
                 self._switch_histories.pop(tag, None)
                 self._battle_flows.pop(tag, None)
+                self._fake_out_trackers.pop(tag, None)
 
     def teampreview(self, battle):
         obs = self._observation(battle)
@@ -70,7 +77,11 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
 
         obs = self._observation(battle)
         with TIMINGS.measure("action_mask"):
-            action_mask = legal_action_mask(battle)
+            if getattr(self, "block_fake_out", False):
+                tracker = self._fake_out_trackers[battle.battle_tag]
+                action_mask = legal_action_mask(battle, fake_out_allowed=tracker.allowed(battle))
+            else:
+                action_mask = legal_action_mask(battle)
         #print("after embed_battle", flush=True)
 
         with TIMINGS.measure("inference"):
