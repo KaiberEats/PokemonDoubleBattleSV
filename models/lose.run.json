@@ -1,0 +1,52 @@
+{
+  "load_model": "/scratch/kaitobaba/PokemonDoubleBattleSV/models/a.pt",
+  "save_model": "/scratch/kaitobaba/PokemonDoubleBattleSV/models/lose.pt",
+  "initial_sha256": "b5da4f25565e658e2da80811a73ea8b573e13b311275b5807f3f4cdff4ec2dc5",
+  "opponent": "maxdamage",
+  "seed": 42,
+  "battles": 10000,
+  "parallel_battles": 20,
+  "focus_ratio": 0.5,
+  "weak_pairs": [
+    [
+      "team4",
+      "team1"
+    ],
+    [
+      "team3",
+      "team4"
+    ],
+    [
+      "team2",
+      "team4"
+    ]
+  ],
+  "block_fake_out": false,
+  "checkpoint_every": 1000,
+  "scheduled_matchups": {
+    "team1_vs_team2": 250,
+    "team1_vs_team3": 250,
+    "team1_vs_team4": 250,
+    "team1_vs_team5": 250,
+    "team2_vs_team1": 250,
+    "team2_vs_team3": 250,
+    "team2_vs_team4": 1916,
+    "team2_vs_team5": 250,
+    "team3_vs_team1": 250,
+    "team3_vs_team2": 250,
+    "team3_vs_team4": 1917,
+    "team3_vs_team5": 250,
+    "team4_vs_team1": 1917,
+    "team4_vs_team2": 250,
+    "team4_vs_team3": 250,
+    "team4_vs_team5": 250,
+    "team5_vs_team1": 250,
+    "team5_vs_team2": 250,
+    "team5_vs_team3": 250,
+    "team5_vs_team4": 250
+  },
+  "error_log": "/scratch/kaitobaba/PokemonDoubleBattleSV/logs/training_errors_20261122T134118Z_d7f2dfc0.jsonl",
+  "completed": true,
+  "completed_battles": 10000,
+  "final_sha256": "cc1a2a82c68c9af0f404205c04b4ad666dcf18feda62c56d1db06a4fc2591f69"
+}
