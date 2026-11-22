@@ -30,7 +30,7 @@ def load_teams():
 
 
 async def train_stage(agent, cfg, teams, opponent_type, rng,
-                      battles=BATTLES_PER_OPPONENT):
+                      battles=BATTLES_PER_OPPONENT, *, team_schedule=None):
     if opponent_type not in OPPONENT_TYPES:
         raise ValueError(f"Unknown opponent type: {opponent_type}")
     if battles <= 0:
@@ -44,6 +44,12 @@ async def train_stage(agent, cfg, teams, opponent_type, rng,
         raise ValueError("parallel_battles must be a positive integer")
 
     names = tuple(teams)
+    if team_schedule is not None:
+        team_schedule = list(team_schedule)
+        if len(team_schedule) != battles:
+            raise ValueError("team_schedule must contain exactly battles pairs")
+        if any(left not in teams or right not in teams for left, right in team_schedule):
+            raise ValueError("Unknown team in team_schedule")
     recorder = TrainingErrorRecorder(cfg.error_log_path)
     players = []
     workers = []
@@ -99,7 +105,8 @@ async def train_stage(agent, cfg, teams, opponent_type, rng,
             checkpoint_every = getattr(cfg, "checkpoint_every", 0)
             if checkpoint_every > 0:
                 count = min(count, checkpoint_every - finished % checkpoint_every)
-            jobs = deque((number, rng.choice(names), rng.choice(names))
+            jobs = deque((number, *(team_schedule[number - 1] if team_schedule is not None
+                                   else (rng.choice(names), rng.choice(names))))
                          for number in range(finished + 1, finished + count + 1))
             tasks = [asyncio.create_task(collect(i, worker, jobs))
                      for i, worker in enumerate(workers)]
