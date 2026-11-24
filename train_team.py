@@ -30,7 +30,8 @@ def load_teams():
 
 
 async def train_stage(agent, cfg, teams, opponent_type, rng,
-                      battles=BATTLES_PER_OPPONENT, *, team_schedule=None):
+                      battles=BATTLES_PER_OPPONENT, *, team_schedule=None, learner_class=None,
+                      learner_kwargs=None):
     if opponent_type not in OPPONENT_TYPES:
         raise ValueError(f"Unknown opponent type: {opponent_type}")
     if battles <= 0:
@@ -64,10 +65,11 @@ async def train_stage(agent, cfg, teams, opponent_type, rng,
                           "selfplay": PPODoublesPlayer}[opponent_type]
         extra = dict(ppo_agent=agent, training=True) if opponent_type == "selfplay" else {}
         for worker_id in range(min(parallel, battles, cfg.update_every_episodes)):
-            learner = PPODoublesPlayer(
+            learner = (learner_class or PPODoublesPlayer)(
                 account_configuration=training_account(f"ppo{worker_id}"),
                 ppo_agent=agent, training=True, team=teams[names[0]],
-                block_fake_out=getattr(cfg, "block_fake_out", False), **common)
+                block_fake_out=getattr(cfg, "block_fake_out", False),
+                **(learner_kwargs or {}), **common)
             players.append(learner)
             opponent = opponent_class(
                 account_configuration=training_account(f"opp{worker_id}"),

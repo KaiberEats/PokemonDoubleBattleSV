@@ -93,7 +93,7 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
                 self._last_obs[battle.battle_tag],
                 self._last_action[battle.battle_tag],
                 self._last_logprob[battle.battle_tag],
-                0.0,
+                self.transition_reward(battle),
                 False,
                 self._last_value[battle.battle_tag],
                 self._last_action_mask[battle.battle_tag],
@@ -141,10 +141,12 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
         else:
             reward = 0.0
 
+        reward = self.result_reward(battle, reward)
+
         if tag in self._last_obs:
             self.buffer.add(
                 self._last_obs[tag], self._last_action[tag], self._last_logprob[tag],
-                reward, True, self._last_value[tag], self._last_action_mask[tag],
+                reward + self.transition_reward(battle), True, self._last_value[tag], self._last_action_mask[tag],
             )
         # Selection is a separate one-step episode: its tuple of species receives
         # the match result directly, without discounting over battle move turns.
@@ -158,6 +160,12 @@ class PPODoublesPlayer(TrainingDiagnosticsMixin, Player):
         self._last_logprob.pop(tag, None)
         self._last_value.pop(tag, None)
         self._last_action_mask.pop(tag, None)
+
+    def transition_reward(self, battle):
+        return 0.0
+
+    def result_reward(self, battle, reward):
+        return reward
 
 
 class FixedTeamRandomDoublesPlayer(TrainingDiagnosticsMixin, Player):
