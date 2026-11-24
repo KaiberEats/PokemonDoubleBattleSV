@@ -1,0 +1,26 @@
+{
+  "load_model": "/scratch/kaitobaba/PokemonDoubleBattleSV/models/a.pt",
+  "save_model": "/scratch/kaitobaba/PokemonDoubleBattleSV/models/reward1.pt",
+  "initial_sha256": "b5da4f25565e658e2da80811a73ea8b573e13b311275b5807f3f4cdff4ec2dc5",
+  "battles": 20000,
+  "parallel_battles": 20,
+  "seed": 42,
+  "checkpoint_every": 1000,
+  "opponent": "maxdamage",
+  "sampling": "independent uniform learner/opponent teams, same as train_max",
+  "block_fake_out": false,
+  "reward": {
+    "win": 100,
+    "loss": -100,
+    "ally_attack": -5,
+    "single_immune": -3,
+    "board": "gamma*Phi(next)-Phi(previous)",
+    "potential_bound": 10,
+    "gamma": 0.99
+  },
+  "reward_log": "/scratch/kaitobaba/PokemonDoubleBattleSV/models/reward1.rewards.jsonl",
+  "error_log": "/scratch/kaitobaba/PokemonDoubleBattleSV/logs/training_errors_20261124T060254Z_28652f5d.jsonl",
+  "completed": true,
+  "completed_battles": 20000,
+  "final_sha256": "d45c2672cc9d780575d287e6cbdd7e3491a80479d090d52e83cf5f97f1e1a014"
+}
