@@ -144,7 +144,15 @@ class TrainingDiagnosticsMixin:
 
     def choose_move(self, battle):
         try:
+            self._sync_active_request(battle)
             order = self._choose_move(battle)
+            request = getattr(battle, "last_request", None) or getattr(battle, "_last_request", {}) or {}
+            if "active" in request and not any(request.get("forceSwitch", [])):
+                parts = [getattr(order, "first_order", None), getattr(order, "second_order", None)]
+                if hasattr(order, "first_order"):
+                    for slot, active in enumerate(battle.active_pokemon):
+                        if active is not None and not active.fainted and parts[slot] is None:
+                            raise ValueError(f"Refusing pass for active slot {slot}; rqid={request.get('rqid')}")
             if getattr(self, "error_recorder", None) is not None:
                 parts = [getattr(order, "first_order", None), getattr(order, "second_order", None)]
                 moves = [part.order.id for part in parts
@@ -156,6 +164,33 @@ class TrainingDiagnosticsMixin:
             if getattr(self, "error_recorder", None) is not None:
                 self.training_error.set()
             raise
+
+    @staticmethod
+    def _sync_active_request(battle):
+        """Reconcile poke-env 0.9's cached slots with the authoritative request.
+
+        Its parser only fills absent slots (or swaps fainted slots). A live
+        outgoing Pokemon can therefore remain referenced after a switch. The
+        request marks it inactive, causing active_pokemon to return None and
+        every policy to emit pass. Rebuild only our side, never the opponent.
+        """
+        request = getattr(battle, "last_request", None) or getattr(battle, "_last_request", {}) or {}
+        if "active" not in request or request.get("wait") or any(request.get("forceSwitch", [])):
+            return
+        side = request.get("side", {})
+        pokemon = side.get("pokemon", [])
+        role = side.get("id")
+        if role not in ("p1", "p2") or not hasattr(battle, "_active_pokemon"):
+            return
+        # Showdown places the two active slots first, including fainted slots.
+        for slot, entry in enumerate(pokemon[:len(request["active"])][:2]):
+            key = role + "ab"[slot]
+            if not entry.get("active"):
+                battle._active_pokemon.pop(key, None)
+                continue
+            mon = battle.get_pokemon(entry["ident"], force_self_team=True,
+                                     details=entry["details"])
+            battle._active_pokemon[key] = mon
 
     async def _handle_ots_request(self, battle_tag):
         battle = self.battles.get(battle_tag)
@@ -170,6 +205,8 @@ class TrainingDiagnosticsMixin:
         # Recent Showdown versions announce preview before sending its request.
         # poke-env 0.9 sets battle.teampreview only when parsing that request.
         request = getattr(battle, "last_request", None) or getattr(battle, "_last_request", {}) or {}
+        if request.get("wait"):
+            return
         if from_teampreview_request and not request.get("teamPreview"):
             return
         if (battle.battle_tag in getattr(self, "_parsing_battle_messages", ())
